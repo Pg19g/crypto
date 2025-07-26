@@ -27,8 +27,14 @@ async def test_history_cache(tmp_path, monkeypatch):
     async with asyncio.timeout(5):
         async with __import__("aiohttp").ClientSession() as session:
             mgr = HistoricalDataManager(session)
-            monkeypatch.setattr(mgr, "_fetch_chunk", fake_fetch)
-            cfg = OHLCVConfig(symbol="BTC_USDT", timeframe="1d", cache_dir=tmp_path)
+            monkeypatch.setattr(HistoricalDataManager, "_fetch_chunk", fake_fetch)
+            cfg = OHLCVConfig(
+                symbol="BTC_USDT",
+                timeframe="1d",
+                cache_dir=tmp_path,
+                start=df_stub.index[0].to_pydatetime(),
+                end=df_stub.index[-1].to_pydatetime(),
+            )
             df = await mgr.fetch_ohlcv(cfg)
             assert not df.empty
             # second call should hit cache
