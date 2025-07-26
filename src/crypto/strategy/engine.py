@@ -9,6 +9,7 @@ try:
     import talib  # type: ignore
 except ModuleNotFoundError:  # pragma: no cover - optional dependency
     talib = None
+import talib
 
 
 @dataclass
@@ -31,6 +32,7 @@ class StrategyEngine:
             loss = (-delta.clip(upper=0)).ewm(alpha=1 / self.config.rsi_period, adjust=False).mean()
             rs = gain / loss
             rsi = 100 - 100 / (1 + rs)
+        rsi = talib.RSI(close, timeperiod=self.config.rsi_period)
         last_rsi = rsi.iloc[-1]
         signal = None
         if last_rsi < 30 and galaxy_score > self.config.galaxy_score_threshold:

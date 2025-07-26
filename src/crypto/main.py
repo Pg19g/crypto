@@ -5,10 +5,11 @@ import aiohttp
 import pandas as pd
 from loguru import logger
 from datetime import datetime, timedelta
-
 from crypto.config.loader import load_config
 from crypto.data.collector import DataCollector
 from crypto.data.history import HistoricalDataManager, OHLCVConfig
+from crypto.config.loader import load_config
+from crypto.data.collector import DataCollector
 from crypto.execution.service import ExecutionService
 from crypto.monitoring.monitor import Monitor
 from crypto.risk.manager import RiskConfig, RiskManager
@@ -79,3 +80,5 @@ async def run_backtest_example(config_path: str) -> None:
 
 if __name__ == "__main__":
     asyncio.run(run_backtest_example(str(Path(__file__).with_name('config.yaml'))))
+if __name__ == "__main__":
+    asyncio.run(run(str(Path(__file__).with_name('config.yaml'))))

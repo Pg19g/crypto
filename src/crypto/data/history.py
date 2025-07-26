@@ -68,6 +68,15 @@ class HistoricalDataManager:
         except Exception as e:  # pragma: no cover - network
             logger.error(f"Failed to fetch data: {e}")
             return pd.DataFrame()
+        async with self.session.get(self.BASE_URL, params=params) as resp:
+            resp.raise_for_status()
+            data = await resp.json()
+        df = pd.DataFrame(data)
+        if not df.empty:
+            df.columns = ["timestamp", "open", "high", "low", "close", "volume"]
+            df["timestamp"] = pd.to_datetime(df["timestamp"], unit="s")
+            df.set_index("timestamp", inplace=True)
+        return df
 
     async def fetch_ohlcv(self, cfg: OHLCVConfig) -> pd.DataFrame:
         """Load OHLCV data, using cached files when possible."""
