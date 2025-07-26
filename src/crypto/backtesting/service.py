@@ -39,13 +39,24 @@ class BacktestingService:
         galaxy_score: float = 0.0,
         initial_balance: float = 1000.0,
     ) -> BacktestResult:
-        """Run backtest on dataframe using a strategy engine."""
+        rsi_period = getattr(getattr(engine, "config", None), "rsi_period", 0)
+        if len(df) < rsi_period:
+            raise ValueError(
+                f"Insufficient data: need at least {rsi_period} periods for RSI"
+            )
+
         balance = initial_balance
         position = 0.0
         entry_price = 0.0
         equity_curve = []
         trades: List[Trade] = []
 
+        start_idx = rsi_period
+        for i in range(start_idx, len(df)):
+            window_data = df.iloc[: i + 1]
+            signal_data = engine.generate_signals(window_data, galaxy_score)
+            price = float(df.iloc[i]["close"])
+            idx = df.index[i]
         for idx, row in df.iterrows():
             signal_data = engine.generate_signals(df.loc[:idx], galaxy_score)
             price = float(row["close"])
@@ -88,6 +99,7 @@ class BacktestingService:
             position = 0.0
             equity_curve[-1] = balance
 
+        equity_series = pd.Series(equity_curve, index=df.index[start_idx:])
         equity_series = pd.Series(equity_curve, index=df.index)
         returns = equity_series.pct_change().fillna(0)
         volatility = returns.std() * np.sqrt(252)
@@ -115,4 +127,3 @@ class BacktestingService:
             calmar_ratio=calmar,
             trades=trades,
             equity_curve=equity_series,
-

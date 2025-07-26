@@ -39,6 +39,35 @@ class HistoricalDataManager:
             "limit": cfg.limit,
         }
         logger.debug("Fetching OHLCV chunk: %s", params)
+
+        try:
+            async with self.session.get(self.BASE_URL, params=params) as resp:
+                resp.raise_for_status()
+                data = await resp.json()
+
+            if not data or not isinstance(data, list):
+                logger.warning("Empty or invalid response from API")
+                return pd.DataFrame()
+
+            df = pd.DataFrame(data)
+            if df.empty:
+                return df
+
+            expected_cols = ["timestamp", "open", "high", "low", "close", "volume"]
+            if len(df.columns) < len(expected_cols):
+                logger.error(f"Unexpected data format: {df.columns}")
+                return pd.DataFrame()
+
+            df.columns = expected_cols[: len(df.columns)]
+            df["timestamp"] = pd.to_datetime(df["timestamp"], unit="s")
+            df.set_index("timestamp", inplace=True)
+            for col in ["open", "high", "low", "close", "volume"]:
+                if col in df.columns:
+                    df[col] = pd.to_numeric(df[col], errors="coerce")
+            return df.dropna()
+        except Exception as e:  # pragma: no cover - network
+            logger.error(f"Failed to fetch data: {e}")
+            return pd.DataFrame()
         async with self.session.get(self.BASE_URL, params=params) as resp:
             resp.raise_for_status()
             data = await resp.json()
