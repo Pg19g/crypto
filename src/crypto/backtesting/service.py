@@ -39,7 +39,7 @@ class BacktestingService:
         galaxy_score: float = 0.0,
         initial_balance: float = 1000.0,
     ) -> BacktestResult:
-        rsi_period = getattr(getattr(engine, "config", None), "rsi_period", 0)
+        rsi_period = getattr(getattr(engine, "config", None), "rsi_period", 14)
         if len(df) < rsi_period:
             raise ValueError(
                 f"Insufficient data: need at least {rsi_period} periods for RSI"
@@ -51,15 +51,15 @@ class BacktestingService:
         equity_curve = []
         trades: List[Trade] = []
 
+        # Start processing from when we have enough data for indicators
         start_idx = rsi_period
+        
         for i in range(start_idx, len(df)):
-            window_data = df.iloc[: i + 1]
+            # Use expanding window from start to current index
+            window_data = df.iloc[:i + 1]
             signal_data = engine.generate_signals(window_data, galaxy_score)
             price = float(df.iloc[i]["close"])
             idx = df.index[i]
-        for idx, row in df.iterrows():
-            signal_data = engine.generate_signals(df.loc[:idx], galaxy_score)
-            price = float(row["close"])
 
             if signal_data["signal"] == "buy" and position == 0:
                 entry_price = price * (1 + self.slippage)
@@ -80,9 +80,11 @@ class BacktestingService:
                     )
                 )
                 position = 0.0
+            
             equity = balance + position * price
             equity_curve.append(equity)
 
+        # Handle any open position at the end
         if position > 0:
             exit_price = float(df.iloc[-1]["close"])
             balance += position * exit_price * (1 - self.fee)
@@ -99,13 +101,13 @@ class BacktestingService:
             position = 0.0
             equity_curve[-1] = balance
 
+        # Create equity series with correct index
         equity_series = pd.Series(equity_curve, index=df.index[start_idx:])
-        equity_series = pd.Series(equity_curve, index=df.index)
         returns = equity_series.pct_change().fillna(0)
         volatility = returns.std() * np.sqrt(252)
         sharpe = (
             (returns.mean() / returns.std()) * np.sqrt(252)
-            if returns.std()
+            if returns.std() > 0
             else 0.0
         )
         cumulative = equity_series.cummax()
@@ -127,3 +129,4 @@ class BacktestingService:
             calmar_ratio=calmar,
             trades=trades,
             equity_curve=equity_series,
+        )
