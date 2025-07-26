@@ -1,7 +1,4 @@
 from __future__ import annotations
-
-"""Simple backtesting engine."""
-
 from dataclasses import dataclass
 from typing import List
 
@@ -118,3 +115,4 @@ class BacktestingService:
             calmar_ratio=calmar,
             trades=trades,
             equity_curve=equity_series,
+
