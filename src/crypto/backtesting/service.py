@@ -1,12 +1,4 @@
 from __future__ import annotations
-
-"""Simple backtesting engine.
-
-This file previously had unresolved merge markers that truncated the
-``return`` statement. The closing parenthesis has been restored and tests
-verify correct operation.
-"""
-
 from dataclasses import dataclass
 from typing import List
 
@@ -123,4 +115,4 @@ class BacktestingService:
             calmar_ratio=calmar,
             trades=trades,
             equity_curve=equity_series,
-        )
+
