@@ -94,11 +94,17 @@ class BacktestingService:
         equity_series = pd.Series(equity_curve, index=df.index)
         returns = equity_series.pct_change().fillna(0)
         volatility = returns.std() * np.sqrt(252)
-        sharpe = (returns.mean() / returns.std()) * np.sqrt(252) if returns.std() else 0.0
+        sharpe = (
+            (returns.mean() / returns.std()) * np.sqrt(252)
+            if returns.std()
+            else 0.0
+        )
         cumulative = equity_series.cummax()
         drawdown = equity_series / cumulative - 1
         max_dd = drawdown.min()
-        total_return = (equity_series.iloc[-1] - initial_balance) / initial_balance
+        total_return = (
+            equity_series.iloc[-1] - initial_balance
+        ) / initial_balance
         calmar = total_return / abs(max_dd) if max_dd < 0 else np.inf
         wins = sum(1 for t in trades if t.profit_pct > 0)
         win_rate = wins / len(trades) if trades else 0.0
