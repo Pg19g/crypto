@@ -61,22 +61,17 @@ class HistoricalDataManager:
             df.columns = expected_cols[: len(df.columns)]
             df["timestamp"] = pd.to_datetime(df["timestamp"], unit="s")
             df.set_index("timestamp", inplace=True)
+            
+            # Convert to numeric and handle errors
             for col in ["open", "high", "low", "close", "volume"]:
                 if col in df.columns:
                     df[col] = pd.to_numeric(df[col], errors="coerce")
+                    
             return df.dropna()
-        except Exception as e:  # pragma: no cover - network
+            
+        except Exception as e:
             logger.error(f"Failed to fetch data: {e}")
             return pd.DataFrame()
-        async with self.session.get(self.BASE_URL, params=params) as resp:
-            resp.raise_for_status()
-            data = await resp.json()
-        df = pd.DataFrame(data)
-        if not df.empty:
-            df.columns = ["timestamp", "open", "high", "low", "close", "volume"]
-            df["timestamp"] = pd.to_datetime(df["timestamp"], unit="s")
-            df.set_index("timestamp", inplace=True)
-        return df
 
     async def fetch_ohlcv(self, cfg: OHLCVConfig) -> pd.DataFrame:
         """Load OHLCV data, using cached files when possible."""
@@ -99,5 +94,6 @@ class HistoricalDataManager:
         if df.empty or df.index.max() < end:
             new_df = await self._fetch_chunk(cfg, int(start.timestamp()), int(end.timestamp()))
             df = pd.concat([df, new_df]).sort_index().drop_duplicates()
-            df.to_parquet(cache_file)
+            if not df.empty:
+                df.to_parquet(cache_file)
         return df.loc[(df.index >= start) & (df.index <= end)]
